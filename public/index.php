@@ -68,7 +68,41 @@
       --shim-c: rgba(255,255,255,.08);
       color-scheme: dark;
     }
+header {
+  position: relative;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
 
+header::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    var(--vgk-gold),
+    var(--vgk-red),
+    var(--vgk-gold),
+    var(--vgk-gray),
+    var(--vgk-gold)
+  );
+  animation: marqueeGlow 6s linear infinite;
+  opacity: 0.2;
+}
+
+@keyframes marqueeGlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+header > * {
+  position: relative;
+  z-index: 1;
+}
     /* Athletic headings */
     h1,h2,h3,.h1,.h2,.h3{ font-family:"Teko",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; letter-spacing:.3px; }
 
@@ -122,6 +156,13 @@
 
     /* FILTER PILLS — colored when active */
     .filter-bar .btn-vgk{ padding-inline: .85rem; }
+    /* Make filters circular icon-only */
+    .filter-bar .btn-icon{
+      width: 42px; height: 42px; padding: 0;
+      border-radius: 50% !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
     .filter-playoffs.active{
       background:#198754 !important; border-color:#157347 !important; color:#fff !important;
       box-shadow:0 6px 14px rgba(25,135,84,.35);
@@ -150,7 +191,11 @@
 
     /* Table polish + safe hover */
     #seasonsTable{ --bs-table-striped-bg: var(--table-stripe); }
-    #seasonsTable thead th{ border-bottom: 1px solid var(--glass-bd) !important; font-weight: 600; }
+    #seasonsTable thead th{
+      border-bottom: 1px solid var(--glass-bd) !important; font-weight: 600;
+      position: sticky; top: 0; z-index: 1;
+      background: var(--glass-bg) !important; backdrop-filter: blur(6px);
+    }
     [data-bs-theme="dark"] .table td, [data-bs-theme="dark"] .table th { border-color: rgba(255,255,255,.14); }
     #seasonsTable tbody tr{ transition: background-color .12s ease; }
     #seasonsTable tbody tr:hover{ background: var(--hover-row); }
@@ -189,42 +234,34 @@
 
     /* BIGGER SHIMMERY THEME SWITCH */
     .vgk-switch .form-check-input{
-      width: 3.8rem;           /* larger track */
-      height: 2rem;
-      cursor: pointer;
-      background: #adb5bd;
-      border: none;
-      position: relative;
+      width: 3.8rem; height: 2rem; cursor: pointer;
+      background: #adb5bd; border: none; position: relative;
       transition: background-color .2s, box-shadow .2s;
       box-shadow: inset 0 0 0 2px rgba(0,0,0,.1);
-      border-radius: 2rem;
-      overflow: hidden;        /* ensure shimmer stays inside */
+      border-radius: 2rem; overflow: hidden;
     }
     .vgk-switch .form-check-input:focus{ box-shadow:0 0 0 .2rem rgba(180,151,90,.38); }
     .vgk-switch .form-check-input:checked{ background: var(--vgk-gold); }
-
-    /* knob */
     .vgk-switch .form-check-input::before{
-      content:"";
-      position:absolute; top:50%; left:.3rem;
+      content:""; position:absolute; top:50%; left:.3rem;
       width:1.6rem; height:1.6rem; transform:translateY(-50%);
-      border-radius:50%; background:#fff;
-      transition:left .2s;
-      box-shadow:0 2px 6px rgba(0,0,0,.25);
-      z-index:2;
+      border-radius:50%; background:#fff; transition:left .2s;
+      box-shadow:0 2px 6px rgba(0,0,0,.25); z-index:2;
     }
-    .vgk-switch .form-check-input:checked::before{ left: 1.9rem; } /* 3.8 - .3 - 1.6 = 1.9 */
-
-    /* shimmer over track */
+    .vgk-switch .form-check-input:checked::before{ left: 1.9rem; }
     .vgk-switch .form-check-input::after{
-      content:"";
-      position:absolute; inset:0; border-radius:inherit;
+      content:""; position:absolute; inset:0; border-radius:inherit;
       background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.28) 40%, transparent 70%);
-      background-size: 220% 100%;
-      animation: btnsheen 2.2s ease-in-out infinite;
-      z-index:1; pointer-events:none;
+      background-size: 220% 100%; animation: btnsheen 2.2s ease-in-out infinite; z-index:1; pointer-events:none;
     }
     .vgk-switch .label{ font-size:1rem; margin-left:.6rem; user-select:none; }
+
+    /* stronger, consistent focus rings */
+    :where(button, [role="button"], .btn, .form-control, .form-check-input, a):focus-visible{
+      outline: none;
+      box-shadow: 0 0 0 .18rem rgba(180,151,90,.55), 0 0 0 .32rem rgba(180,151,90,.25) !important;
+      border-color: rgba(180,151,90,.6) !important;
+    }
   </style>
 </head>
 <body class="bg-light">
@@ -246,7 +283,9 @@
 
       <div class="vgk-switch form-check form-switch d-flex align-items-center">
         <input class="form-check-input" type="checkbox" role="switch" id="themeToggle" aria-label="Toggle dark mode">
-        <label for="themeToggle" class="label text-muted"><span id="themeLabel">Dark</span> Mode</label>
+        <label for="themeToggle" class="label text-muted">
+          <i id="themeIcon" class="bi bi-moon-stars me-1"></i><span id="themeLabel">Dark</span> Mode
+        </label>
       </div>
     </header>
 
@@ -385,12 +424,20 @@
                 <button id="clearSearch" class="btn btn-vgk btn-sm shimmer" type="button" title="Clear"><i class="bi bi-x-lg"></i></button>
               </div>
 
-              <!-- Filters (colored pills) -->
-              <div class="btn-group btn-group-sm filter-bar" role="group" aria-label="Season filters">
-                <button id="filter-playoffs" class="btn btn-vgk shimmer filter-playoffs"><i class="bi bi-trophy me-1"></i>Playoffs</button>
-                <button id="filter-scf" class="btn btn-vgk shimmer filter-scf"><i class="bi bi-award me-1"></i>SCF</button>
-                <button id="filter-champs" class="btn btn-vgk shimmer filter-champs"><i class="bi bi-star me-1"></i>Champions</button>
-                <button id="filter-reset" class="btn btn-vgk shimmer filter-reset"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+              <!-- Filters (circular, icon-only) -->
+              <div class="btn-group filter-bar" role="group" aria-label="Season filters">
+                <button id="filter-playoffs" class="btn btn-vgk btn-icon shimmer filter-playoffs" data-bs-toggle="tooltip" data-bs-title="Playoff seasons" aria-label="Playoff seasons">
+                  <i class="bi bi-trophy"></i>
+                </button>
+                <button id="filter-scf" class="btn btn-vgk btn-icon shimmer filter-scf" data-bs-toggle="tooltip" data-bs-title="Stanley Cup Final seasons" aria-label="Stanley Cup Final seasons">
+                  <i class="bi bi-award"></i>
+                </button>
+                <button id="filter-champs" class="btn btn-vgk btn-icon shimmer filter-champs" data-bs-toggle="tooltip" data-bs-title="Championship seasons" aria-label="Championship seasons">
+                  <i class="bi bi-star"></i>
+                </button>
+                <button id="filter-reset" class="btn btn-vgk btn-icon shimmer filter-reset" data-bs-toggle="tooltip" data-bs-title="Reset filters" aria-label="Reset filters">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
               </div>
             </div>
           </div>
@@ -408,6 +455,11 @@
               </thead>
               <tbody></tbody>
             </table>
+          </div>
+
+          <!-- Empty results state -->
+          <div id="emptyState" class="text-center text-muted py-4" style="display:none;">
+            <i class="bi bi-search"></i> No seasons match your search/filter.
           </div>
 
           <!-- Table skeleton -->
@@ -498,8 +550,13 @@ function applyTheme(theme) {
   document.documentElement.setAttribute('data-bs-theme', theme);
   const label = document.getElementById('themeLabel');
   const toggle = document.getElementById('themeToggle');
+  const icon = document.getElementById('themeIcon');
   if (label) label.textContent = (theme === 'dark') ? 'Light' : 'Dark';
   if (toggle) toggle.checked = (theme === 'dark');
+  if (icon){
+    icon.classList.remove('bi-moon-stars','bi-brightness-high');
+    icon.classList.add(theme === 'dark' ? 'bi-brightness-high' : 'bi-moon-stars');
+  }
   setTimeout(() => renderChart(), 0);
 }
 // DEFAULT THEME = DARK
@@ -534,6 +591,11 @@ function showToast(message){
   const el = document.getElementById('vgkToast');
   const toast = new bootstrap.Toast(el, { autohide: true, delay: 1800 });
   toast.show();
+}
+
+function initTooltips(){
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el, { trigger: 'hover focus' }));
 }
 
 // ---------- URL state (shareable) ----------
@@ -626,8 +688,10 @@ function getFilteredRows() {
   return sortRows(rows);
 }
 function applyFilters(push=true) {
-  renderTable(getFilteredRows());
+  const rows = getFilteredRows();
+  renderTable(rows);
   updateFilterButtons();
+  $('#emptyState').toggle(rows.length === 0);
   if (push) updateURLFromState(true);
 }
 function updateFilterButtons() {
@@ -812,6 +876,9 @@ function debounce(fn, wait = 200) { let t; return (...args) => { clearTimeout(t)
 $(function() {
   // Read URL state (if present) before loading
   applyParams(new URLSearchParams(location.search));
+
+  // tooltips everywhere
+  initTooltips();
 
   // Global AJAX shimmer bar
   $(document).ajaxStart(() => { $('#topLoader').fadeIn(80); });
