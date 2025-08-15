@@ -68,41 +68,7 @@
       --shim-c: rgba(255,255,255,.08);
       color-scheme: dark;
     }
-header {
-  position: relative;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
 
-header::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(
-    from 0deg,
-    var(--vgk-gold),
-    var(--vgk-red),
-    var(--vgk-gold),
-    var(--vgk-gray),
-    var(--vgk-gold)
-  );
-  animation: marqueeGlow 6s linear infinite;
-  opacity: 0.2;
-}
-
-@keyframes marqueeGlow {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-header > * {
-  position: relative;
-  z-index: 1;
-}
     /* Athletic headings */
     h1,h2,h3,.h1,.h2,.h3{ font-family:"Teko",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; letter-spacing:.3px; }
 
@@ -154,9 +120,8 @@ header > * {
     }
     @keyframes btnsheen{ 0%{background-position: 200% 0} 100%{background-position: -200% 0} }
 
-    /* FILTER PILLS — colored when active */
+    /* FILTERS — circular, icon-only */
     .filter-bar .btn-vgk{ padding-inline: .85rem; }
-    /* Make filters circular icon-only */
     .filter-bar .btn-icon{
       width: 42px; height: 42px; padding: 0;
       border-radius: 50% !important;
@@ -598,6 +563,28 @@ function initTooltips(){
   tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el, { trigger: 'hover focus' }));
 }
 
+// ---------- PERSIST UI STATE ----------
+function persistState(){
+  try {
+    localStorage.setItem('vgk_ui', JSON.stringify({
+      filter: currentFilter,
+      search: $('#seasonSearch').val() || '',
+      sortKey, sortDir
+    }));
+  } catch {}
+}
+function restoreStateIfNoQueryParams(){
+  // Only restore if there are no URL params (URL takes precedence)
+  if (location.search && location.search.length > 1) return;
+  try {
+    const s = JSON.parse(localStorage.getItem('vgk_ui') || '{}');
+    if (s.filter) currentFilter = s.filter;
+    if (typeof s.search === 'string') { $('#seasonSearch').val(s.search); searchTerm = s.search; }
+    if (s.sortKey) sortKey = s.sortKey;
+    if (s.sortDir) sortDir = s.sortDir;
+  } catch {}
+}
+
 // ---------- URL state (shareable) ----------
 function stateToParams() {
   const p = new URLSearchParams();
@@ -874,8 +861,11 @@ function debounce(fn, wait = 200) { let t; return (...args) => { clearTimeout(t)
 
 // ---------- init + global ajax loader ----------
 $(function() {
-  // Read URL state (if present) before loading
+  // 1) Apply URL params (if any)
   applyParams(new URLSearchParams(location.search));
+
+  // 2) Restore persisted state only if there were no URL params
+  restoreStateIfNoQueryParams();
 
   // tooltips everywhere
   initTooltips();
@@ -888,24 +878,24 @@ $(function() {
   loadSeasons();
 
   // Filters
-  $('#filter-playoffs').on('click', () => { currentFilter = 'playoffs'; applyFilters(); });
-  $('#filter-scf').on('click',      () => { currentFilter = 'scf';      applyFilters(); });
-  $('#filter-champs').on('click',   () => { currentFilter = 'champs';   applyFilters(); });
+  $('#filter-playoffs').on('click', () => { currentFilter = 'playoffs'; applyFilters(); persistState(); });
+  $('#filter-scf').on('click',      () => { currentFilter = 'scf';      applyFilters(); persistState(); });
+  $('#filter-champs').on('click',   () => { currentFilter = 'champs';   applyFilters(); persistState(); });
   $('#filter-reset').on('click',    () => {
-    currentFilter = 'all'; searchTerm = ''; $('#seasonSearch').val(''); applyFilters();
+    currentFilter = 'all'; searchTerm = ''; $('#seasonSearch').val(''); applyFilters(); persistState();
   });
 
   // Search
-  const onSearch = debounce(() => { searchTerm = $('#seasonSearch').val() || ''; applyFilters(); }, 200);
+  const onSearch = debounce(() => { searchTerm = $('#seasonSearch').val() || ''; applyFilters(); persistState(); }, 200);
   $('#seasonSearch').on('input', onSearch);
-  $('#clearSearch').on('click', function(){ $('#seasonSearch').val(''); searchTerm = ''; applyFilters(); });
+  $('#clearSearch').on('click', function(){ $('#seasonSearch').val(''); searchTerm = ''; applyFilters(); persistState(); });
 
   // Sorting
   $(document).on('click', 'th.sortable', function() {
     const key = $(this).data('key');
     if (sortKey === key) { sortDir = (sortDir === 'asc') ? 'desc' : 'asc'; }
     else { sortKey = key; sortDir = 'asc'; }
-    applyFilters();
+    applyFilters(); persistState();
   });
 
   // Row click → load series
